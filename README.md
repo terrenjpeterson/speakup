@@ -9,5 +9,5 @@ endpoint
 --------
 https://s3.amazonaws.com/camerongallagherfoundation/
 
-/images - rendering of cards for companion app.
-/quotes - mp3 files for quotes that are read in the skill.
+* /images - rendering of cards for companion app.
+* /quotes - mp3 files for quotes that are read in the skill.
