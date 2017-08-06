@@ -1,0 +1,9 @@
+GetMinuteMindfulness a minute of mindfulness
+GetUpcomingEvents upcoming events
+PlayCameronSong play cameron song
+AMAZON.StartOverIntent start
+AMAZON.StartOverIntent begin
+AMAZON.StartOverIntent new
+AMAZON.StopIntent goodbye
+AMAZON.StopIntent exit
+AMAZON.StopIntent quit
