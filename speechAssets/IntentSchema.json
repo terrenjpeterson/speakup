@@ -10,6 +10,9 @@
       "intent": "PlayCameronSong"
     },
     {
+      "intent": "LaunchRequest"
+    },
+    {
       "intent": "AMAZON.NavigateSettingsIntent"
     },
     {

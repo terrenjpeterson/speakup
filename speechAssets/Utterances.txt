@@ -1,6 +1,14 @@
 GetMinuteMindfulness a minute of mindfulness
+GetMinuteMindfulness give me a minute of mindfulness
+GetMinuteMindfulness teach me a minute of mindfulness
 GetUpcomingEvents upcoming events
+GetUpcomingEvents list upcoming events
+GetUpcomingEvents what are the upcoming events
 PlayCameronSong play cameron song
+PlayCameronSong preview cameron song
+LaunchRequest read me a quote
+LaunchRequest read a quote
+LaunchRequest give me a quote
 AMAZON.StartOverIntent start
 AMAZON.StartOverIntent begin
 AMAZON.StartOverIntent new
