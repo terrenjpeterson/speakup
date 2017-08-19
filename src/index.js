@@ -72,8 +72,9 @@ const handlers = {
             message = message + "<break time=\"1s\"/>";
             message = message + "You can also ask Speak Up for a minute of mindfulness, upcoming " +
                 "events, or play Camerons song.";
+        var repeat = "If you would like to hear another quote, say read me a quote. ";
 
-        this.emit(':tellWithCard', message, imageObj);
+        this.emit(':askWithCard', message, repeat, imageObj);
     },
     'PlayCameronSong': function() {
         // this is the mp3 file name for Cameron's song
@@ -99,8 +100,9 @@ const handlers = {
             message = message + "<break time=\"1s\"/>";
             message = message + "You can also ask Speak Up for a quote, upcoming " +
                 "events, or play Camerons song.";            
+        var repeat = "Please say something like, read me a quote to get started. ";
 
-        this.emit(':tellWithCard', message, imageObj);
+        this.emit(':askWithCard', message, repeat, imageObj);
     },
     'GetUpcomingEvents': function() {
         var message = "Here are the upcoming events. ";
@@ -118,8 +120,13 @@ const handlers = {
         this.emit(':tell',message);
     },
     'AMAZON.HelpIntent': function () {
-        var message = "Here is how to use this skill.";
-        this.emit(':tell', message);
+        var message = "This skill is called Speak Up, and can do a variety of things. " +
+            "You can say, give me a quote and I will read an inspirational quote. " +
+            "You can say, play cameron song and I will play a song that is a tribute to Cameron Gallagher. " +
+            "You can say, give me a minute of mindfulness and I will help you relax. " +
+            "or you can say what are upcoming events, and I will list you what events the foundation has on the calendar. ";
+        var repeat = "Please say something like, read me a quote to get started. ";
+        this.emit(':ask', message, repeat);
     },
     'AMAZON.CancelIntent': function () {
         var message = "Thanks for using the skill";
