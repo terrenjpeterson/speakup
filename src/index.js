@@ -8,7 +8,7 @@
 const Alexa = require('alexa-sdk');
 
 // this is the card that displays on
-var imageObj = {
+const imageObj = {
     smallImageUrl: 'https://s3.amazonaws.com/camerongallagherfoundation/images/small.png',
     largeImageUrl: 'https://s3.amazonaws.com/camerongallagherfoundation/images/large.png'
 };
@@ -17,9 +17,42 @@ var imageObj = {
 const mediaLocation = "https://s3.amazonaws.com/camerongallagherfoundation/";
 
 // this is the array of individual quote files stored in S3
-var quotes = [
-    "FightFinishFaith.mp3",
-    "SmoothSailor.mp3"
+const quotes = [
+    "Alexa_Gray_Babe+Ruth.mp3",
+    "Alexa_Gray_Buddha.mp3",
+    "Alexa_Gray_Covey.mp3",
+    "Alexa_Gray_Dalai+Lama.mp3",
+    "Alexa_Gray_Eisenhower.mp3",
+    "Alexa_Gray_Ford.mp3",
+    "Alexa_Gray_Kimbro.mp3",
+    "Alexa_Gray_Meyer.mp3",
+    "Alexa_Gray_Roosevelt.mp3",
+    "Alexa_Gray_Thoreau.mp3",
+    "Alexa_Reed_Angelou.mp3",
+    "Alexa_Reed_Bradstreet.mp3",
+    "Alexa_Reed_Churchill.mp3",
+    "Alexa_Reed_Dumbledore.mp3",
+    "Alexa_Reed_Eggers.mp3",
+    "Alexa_Reed_Emerson.mp3",
+    "Alexa_Reed_Franklin.mp3",
+    "Alexa_Reed_Goodman.mp3",
+    "Alexa_Reed_Nelson.mp3",
+    "Alexa_Reed_Poindexter.mp3",
+    "Alexa_Reed_Swift.mp3",
+    "Alexa_Reed_Tolstoy.mp3",
+    "Alexa_Reed_Twain.mp3",
+];
+
+// this is the array of individual mindful moments files stored in S3
+const mindfulMoments = [
+    "Alexa_Reed_MindfulMoment_Breathing.mp3",
+    "Alexa_Reed_Mindfulmoment_Smile.mp3"
+];
+
+// this is the array of upcoming events that will be read back to the user
+const eventCalendar = [
+    { "eventName":"Richmond Speak Up 5k", "eventDate":"September 9th, 2017" },
+    { "eventName":"Speak Up Light Up Party", "eventDate":"January 27th, 2018" }
 ];
 
 const APP_ID = undefined;
@@ -31,6 +64,7 @@ const handlers = {
         var quoteSelection = Math.floor(Math.random() * quotes.length);
         // this is the mp3 that will be played
         var quoteFile = quotes[quoteSelection];
+        console.log("quote selection played: " + quoteFile);
 
         // make valid SSML syntax for playing MP3
         var message = "<audio src=\"" + mediaLocation + "quotes/" + quoteFile + "\"/>";
@@ -55,32 +89,32 @@ const handlers = {
         this.emit(':tellWithCard', message, imageObj);
     },
     'GetMinuteMindfulness': function() {
-        // this is the mp3 for Mindfullness music
-        var songLocation = "https://s3.amazonaws.com/time-out-alexa-skill-audio/";
-        var songFile = "1minute.mp3";
+        // generate a random number to select the mindful moments clip
+        var msgSelection = Math.floor(Math.random() * mindfulMoments.length);
 
-        var message = "Give yourself permission to allow this moment to be exactly as it is.";
-            message = message + "<break time=\"0.5s\"/>";
-            message = message + "and allow yourself to be exactly as you are";
-            message = message + "<break time=\"0.2s\"/>";
         // make valid SSML syntax for playing MP3
-        var songMarkup = "<audio src=\"" + songLocation + songFile + "\"/>";
-            message = message + songMarkup;
+        var message = "<audio src=\"" + mediaLocation + "mindfulMoments/" + 
+            mindfulMoments[msgSelection] + "\"/>";
         // add some closing language to be played after the music.
-            message = message + "<break time=\"0.2s\"/>";
-            message = message + "Becoming fully aware of your body, breath and immediate " +
-                "environment brings you into the present moment";
-            message = message + "<break time=\"0.5s\"/>";
-            message = message + "helping you see the true nature of things more clearly.";
-            message = message + "<break time=\"0.5s\"/>";
-            message = message + "The more you practice such simple mindfulness exercises";
-            message = message + "<break time=\"0.5s\"/>";
-            message = message + "the calmer your disposition will become in everyday life.";            
+            message = message + "<break time=\"1s\"/>";
+            message = message + "You can also ask Speak Up for a quote, upcoming " +
+                "events, or play Camerons song.";            
 
         this.emit(':tellWithCard', message, imageObj);
     },
     'GetUpcomingEvents': function() {
-        var message = "Get upcoming events.";
+        var message = "Here are the upcoming events. ";
+        // go through array and list out events - have a one second break between each
+        for (var i = 0; i < eventCalendar.length; i++) {
+            message = message + "<break time=\"1s\"/>";
+            message = message + eventCalendar[i].eventName + " on " + eventCalendar[i].eventDate + ". ";
+        }
+        // close message with reference to the website
+        message = message + "<break time=\"1s\"/>";
+        message = message + "For more details, please visit our website at ";
+        message = message + "<break time=\"0.5s\"/>";
+        message = message + "ckg foundation dot org.";
+        
         this.emit(':tell',message);
     },
     'AMAZON.HelpIntent': function () {
