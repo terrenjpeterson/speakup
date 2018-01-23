@@ -13,6 +13,16 @@ const imageObj = {
     largeImageUrl: 'https://s3.amazonaws.com/camerongallagherfoundation/images/large.png'
 };
 
+// utility methods for creating Image and TextField objects
+const makePlainText = Alexa.utils.TextUtils.makePlainText;
+const makeImage     = Alexa.utils.ImageUtils.makeImage;
+
+// this is a public endpoint for the background image
+const backgroundImage = "https://s3.amazonaws.com/camerongallagherfoundation/image.jpg";
+
+// this is the error message given if someone attempts to play a video without an Alexa
+const nonVideoMessage = "Sorry, this plays a video which requires an Echo Show or Spot.";
+
 // this is the endpoint for where the media is located for the skill
 const mediaLocation = "https://s3.amazonaws.com/camerongallagherfoundation/";
 
@@ -55,9 +65,8 @@ const eventCalendar = [
     { "eventName":"Speak Up Light Up Party", "eventDate":"January 27th, 2018" }
 ];
 
-const APP_ID = undefined;
-//[ToDo: adding AppId is throwing an exception]
-//const APP_ID = 'amzn1.ask.skill.99b7b771-7458-4157-9a5b-76d5372e3cae';
+// this is the app id from Alexa
+const APP_ID = 'amzn1.ask.skill.99b7b771-7458-4157-9a5b-76d5372e3cae';
                 
 const handlers = {
     'LaunchRequest': function () {
@@ -77,17 +86,31 @@ const handlers = {
         this.emit(':askWithCard', message, repeat, imageObj);
     },
     'PlayCameronSong': function() {
-        // this is the mp3 file name for Cameron's song
-        var songFile = "Cameron.mp3";
+	// if the device is an Echo Show, play the video - else play the song
+        if (this.event.context.System.device.supportedInterfaces.VideoApp) {
+            const videoObject = 'Cameron_song_video.mp4';
+            const videoTitle = "Cameron's Song";
+            const videoClip = mediaLocation + "videos/" + videoObject;
+            // this will be rendered when the user selects video controls
+            const metadata = {
+                'title': videoTitle
+            };
+            console.log("play video:" + videoClip);
+            this.response.playVideo(videoClip, metadata);
+            this.emit(':responseReady');
+	} else {
+            // this is the mp3 file name for Cameron's song
+            var songFile = "Cameron.mp3";
 
-        // make valid SSML syntax for playing MP3
-        var message = "<audio src=\"" + mediaLocation + songFile + "\"/>";
-        // add a one second break
-            message = message + "<break time=\"1s\"/>";
-            message = message + "The full version of Cameron's song by Christopher Minton " +
-                "is available on iTunes.";
+            // make valid SSML syntax for playing MP3
+            var message = "<audio src=\"" + mediaLocation + songFile + "\"/>";
+            // add a one second break
+                message = message + "<break time=\"1s\"/>";
+                message = message + "The full version of Cameron's song by Christopher Minton " +
+                    "is available on iTunes.";
 
-        this.emit(':tellWithCard', message, imageObj);
+            this.emit(':tellWithCard', message, imageObj);
+	}
     },
     'GetMinuteMindfulness': function() {
         // generate a random number to select the mindful moments clip
@@ -139,6 +162,24 @@ const handlers = {
     'SessionEndedRequest': function () {
         var message = "Thanks for using the skill";
         this.emit(':tell', message);
+    },
+    'PlayVideo': function() {
+        console.log("play video requested" + JSON.stringify(this.event));
+        if (this.event.context.System.device.supportedInterfaces.VideoApp) {
+            const videoObject = 'about_ckg_video.mp4';
+	    const videoTitle = 'About CKG Foundation';
+            const videoClip = mediaLocation + "videos/" + videoObject;
+            // this will be rendered when the user selects video controls
+            const metadata = { 
+                'title': videoTitle
+            };
+	    console.log("play video:" + videoClip);
+            this.response.playVideo(videoClip, metadata);
+	    this.emit(':responseReady');
+        } else {
+            // handle error - and close the session
+            this.emit(':tell', nonVideoMessage);
+        }
     },
     'Unhandled': function() {
         console.log("UNHANDLED");
