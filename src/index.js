@@ -54,10 +54,7 @@ const quotes = [
 ];
 
 // this is the array of individual mindful moments files stored in S3
-const mindfulMoments = [
-    { "audio":"Alexa_Reed_MindfulMoment_Breathing.mp3", "video":"mindfullness_video_breathing.mp4" },
-    { "audio":"Alexa_Reed_Mindfulmoment_Smile.mp3", "video":"mindfullness_video_smile.mp4" }
-];
+const mindfulMoments = require("data/mindful.json");
 
 // this is the array of upcoming events that will be read back to the user
 const eventCalendar = [
