@@ -27,31 +27,7 @@ const nonVideoMessage = "Sorry, this plays a video which requires an Echo Show o
 const mediaLocation = "https://s3.amazonaws.com/camerongallagherfoundation/";
 
 // this is the array of individual quote files stored in S3
-const quotes = [
-    "Alexa_Gray_Babe+Ruth.mp3",
-    "Alexa_Gray_Buddha.mp3",
-    "Alexa_Gray_Covey.mp3",
-    "Alexa_Gray_Dalai+Lama.mp3",
-    "Alexa_Gray_Eisenhower.mp3",
-    "Alexa_Gray_Ford.mp3",
-    "Alexa_Gray_Kimbro.mp3",
-    "Alexa_Gray_Meyer.mp3",
-    "Alexa_Gray_Roosevelt.mp3",
-    "Alexa_Gray_Thoreau.mp3",
-    "Alexa_Reed_Angelou.mp3",
-    "Alexa_Reed_Bradstreet.mp3",
-    "Alexa_Reed_Churchill.mp3",
-    "Alexa_Reed_Dumbledore.mp3",
-    "Alexa_Reed_Eggers.mp3",
-    "Alexa_Reed_Emerson.mp3",
-    "Alexa_Reed_Franklin.mp3",
-    "Alexa_Reed_Goodman.mp3",
-    "Alexa_Reed_Nelson.mp3",
-    "Alexa_Reed_Poindexter.mp3",
-    "Alexa_Reed_Swift.mp3",
-    "Alexa_Reed_Tolstoy.mp3",
-    "Alexa_Reed_Twain.mp3",
-];
+const quotes = require("data/quotes.json");
 
 // this is the array of individual mindful moments files stored in S3
 const mindfulMoments = require("data/mindful.json");
@@ -124,18 +100,18 @@ const handlers = {
     'GetMinuteMindfulness': function() {
         // generate a random number to select the mindful moments clip
         const msgSelection = Math.floor(Math.random() * mindfulMoments.length);
+	const slots = this.event.request.intent.slots;
 
+	console.log("Playing Minute of Mindfulness");
+
+	// check if the device is an echo show or something with a screen
         if (this.event.context.System.device.supportedInterfaces.VideoApp) {
-            const videoObject = mindfulMoments[msgSelection].video;
-            const videoTitle = 'Mindful Moments';
-            const videoClip = mediaLocation + "videos/" + videoObject;
-            // this will be rendered when the user selects video controls
-            const metadata = {
-                'title': videoTitle
-            };
-            console.log("play video:" + videoClip);
-            this.response.playVideo(videoClip, metadata);
-            this.emit(':responseReady');
+	    // if a video number has been provided, play that video, else give list
+	    if (slots.VideoNumber.value) {
+		this.emit('PlayMindfulVideo');
+	    } else {
+		this.emit('ListMindfulVideos');
+	    }
         } else {
             // make valid SSML syntax for playing MP3
             var message = "<audio src=\"" + mediaLocation + "mindfulMoments/" + 
@@ -148,6 +124,83 @@ const handlers = {
 
             this.emit(':askWithCard', message, repeat, imageObj);
 	}
+    },
+    'ElementSelected': function() {
+	console.log("Mindful Video Selected from Device Screen " + this.event.request.token);
+
+        var videoName = "";
+        // match token to song name and find the video object to play
+        for (var i = 0; i < mindfulMoments.length; i++ ) {
+            if (mindfulMoments[i].token === this.event.request.token) {
+                console.log("Play " + mindfulMoments[i].title);
+                videoName = mindfulMoments[i].videoObject;
+            }
+        }
+
+        const videoTitle = 'Mindful Moments';
+        const videoClip = mediaLocation + "videos/" + videoName;
+
+        // this will be rendered when the user selects video controls
+        const metadata = {
+            'title': videoTitle
+        };
+
+        console.log("play video:" + videoClip);
+
+        this.response.playVideo(videoClip, metadata);
+        this.emit(':responseReady');
+    },
+    'PlayMindfulVideo': function() {
+	const videoNumber = Number(this.event.request.intent.slots.VideoNumber.value);
+	// make sure a bad number is not selected
+	if (videoNumber > 10) {
+	    videoNumber = 1
+	}
+        console.log("Playing Mindful Video " + videoNumber);
+
+	const videoObject = mindfulMoments[videoNumber].video;
+	const videoTitle = 'Mindful Moments';
+	const videoClip = mediaLocation + "videos/" + videoObject;
+            
+	// this will be rendered when the user selects video controls
+	const metadata = {
+	    'title': videoTitle
+	};
+            
+	console.log("play video:" + videoClip);
+            
+	this.response.playVideo(videoClip, metadata);
+	this.emit(':responseReady');
+    },
+    'ListMindfulVideos': function() {
+	console.log("List Videos");
+
+	const itemImage = null;
+	const listItemBuilder 	  = new Alexa.templateBuilders.ListItemBuilder();
+	const listTemplateBuilder = new Alexa.templateBuilders.ListTemplate1Builder();
+
+	var message = "There are ten different videos currently available. ";
+	const listRepeat = "If you would like to see a mindful moments video, say something like Play Video Three. ";	    
+
+	// build list of all available songs
+	for (var i = 0; i < mindfulMoments.length; i++ ) {
+	    // pull attributes from mindful moments array and apply to the list
+	    listItemBuilder.addItem(null, mindfulMoments[i].token, makePlainText(mindfulMoments[i].title));
+	}
+	    
+	message = message + "Just select on the screen a video, or request by saying something " +
+	    "like, Play mindful video three.";
+
+	const listItems = listItemBuilder.build();
+	const listTemplate = listTemplateBuilder.setToken('listToken')
+						.setTitle('Available Video List')
+						.setListItems(listItems)
+						.setBackgroundImage(makeImage(backgroundImage))
+						.build();
+	   	
+	console.log(JSON.stringify(listTemplate));
+	this.response.speak(message).listen(listRepeat).renderTemplate(listTemplate);
+	this.emit(':responseReady');
     },
     'GetUpcomingEvents': function() {
         var message = "Here are the upcoming events. ";
