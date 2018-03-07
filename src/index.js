@@ -7,7 +7,7 @@
 
 const Alexa = require('alexa-sdk');
 
-// this is the card that displays on
+// this is the card that displays on the companion device paired with the Alexa
 const imageObj = {
     smallImageUrl: 'https://s3.amazonaws.com/camerongallagherfoundation/images/small.png',
     largeImageUrl: 'https://s3.amazonaws.com/camerongallagherfoundation/images/large.png'
@@ -27,17 +27,11 @@ const nonVideoMessage = "Sorry, this plays a video which requires an Echo Show o
 // this is the endpoint for where the media is located for the skill
 const mediaLocation = "https://s3.amazonaws.com/camerongallagherfoundation/";
 
-// this is the array of individual quote files stored in S3
+// this is the array of individual quote files stored in the build package
 const quotes = require("data/quotes.json");
 
-// this is the array of individual mindful moments files stored in S3
+// this is the array of individual mindful moments files stored in the build package
 const mindfulMoments = require("data/mindful.json");
-
-// this is the array of upcoming events that will be read back to the user
-const eventCalendar = [
-    { "eventName":"Richmond Speak Up 5k", "eventDate":"September 9th, 2017" },
-    { "eventName":"Speak Up Light Up Party", "eventDate":"January 27th, 2018" }
-];
 
 // this is the app id from Alexa
 const APP_ID = 'amzn1.ask.skill.99b7b771-7458-4157-9a5b-76d5372e3cae';
@@ -127,6 +121,7 @@ const handlers = {
             this.emit(':askWithCard', message, repeat, imageObj);
 	}
     },
+    // this is the event triggered by touching the device screen
     'ElementSelected': function() {
 	console.log("Mindful Video Selected from Device Screen " + this.event.request.token);
 
@@ -152,6 +147,7 @@ const handlers = {
         this.response.playVideo(videoClip, metadata);
         this.emit(':responseReady');
     },
+    // this plays a mindful moments video based on the custom slot uttered by the user
     'PlayMindfulVideo': function() {
 	const videoNumber = Number(this.event.request.intent.slots.VideoNumber.value);
 	// make sure a bad number is not selected
@@ -174,6 +170,7 @@ const handlers = {
 	this.response.playVideo(videoClip, metadata);
 	this.emit(':responseReady');
     },
+    // this provides a complete list of mindful moment videos
     'ListMindfulVideos': function() {
 	console.log("List Videos");
 
@@ -204,21 +201,6 @@ const handlers = {
 	this.response.speak(message).listen(listRepeat).renderTemplate(listTemplate);
 	this.emit(':responseReady');
     },
-    'GetUpcomingEvents': function() {
-        var message = "Here are the upcoming events. ";
-        // go through array and list out events - have a one second break between each
-        for (var i = 0; i < eventCalendar.length; i++) {
-            message = message + "<break time=\"1s\"/>";
-            message = message + eventCalendar[i].eventName + " on " + eventCalendar[i].eventDate + ". ";
-        }
-        // close message with reference to the website
-        message = message + "<break time=\"1s\"/>";
-        message = message + "For more details, please visit our website at ";
-        message = message + "<break time=\"0.5s\"/>";
-        message = message + "ckg foundation dot org.";
-        
-        this.emit(':tell',message);
-    },
     'AMAZON.HelpIntent': function () {
         var message = "This skill is called Speak Up, and can do a variety of things. " +
             "You can say, give me a quote and I will read an inspirational quote. " +
@@ -240,6 +222,7 @@ const handlers = {
         var message = "Thanks for using the skill";
         this.emit(':tell', message);
     },
+    // this provides info on the foundation - either video or audio file
     'PlayVideo': function() {
         console.log("play video requested" + JSON.stringify(this.event));
         if (this.event.context.System.device.supportedInterfaces.VideoApp) {
