@@ -19,6 +19,7 @@ const makeImage     = Alexa.utils.ImageUtils.makeImage;
 
 // this is a public endpoint for the background image
 const backgroundImage = "https://s3.amazonaws.com/camerongallagherfoundation/images/background.png";
+const darkBackground  = "https://s3.amazonaws.com/camerongallagherfoundation/images/darkBackground.png";
 
 // this is the error message given if someone attempts to play a video without an Alexa
 const nonVideoMessage = "Sorry, this plays a video which requires an Echo Show or Spot.";
@@ -91,7 +92,8 @@ const handlers = {
             // add a one second break
                 message = message + "<break time=\"1s\"/>";
                 message = message + "The full version of Cameron's song by Christopher Minton " +
-                    "is available on iTunes.";
+                    "is available on iTunes with proceeds going to the Cameron K Gallagher " +
+		    "foundation.";
 
             this.emit(':tellWithCard', message, imageObj);
 	}
@@ -133,7 +135,7 @@ const handlers = {
         for (var i = 0; i < mindfulMoments.length; i++ ) {
             if (mindfulMoments[i].token === this.event.request.token) {
                 console.log("Play " + mindfulMoments[i].title);
-                videoName = mindfulMoments[i].videoObject;
+                videoName = mindfulMoments[i].video;
             }
         }
 
@@ -158,7 +160,7 @@ const handlers = {
 	}
         console.log("Playing Mindful Video " + videoNumber);
 
-	const videoObject = mindfulMoments[videoNumber].video;
+	const videoObject = mindfulMoments[videoNumber - 1].video;
 	const videoTitle = 'Mindful Moments';
 	const videoClip = mediaLocation + "videos/" + videoObject;
             
@@ -195,7 +197,7 @@ const handlers = {
 	const listTemplate = listTemplateBuilder.setToken('listToken')
 						.setTitle('Available Video List')
 						.setListItems(listItems)
-						.setBackgroundImage(makeImage(backgroundImage))
+						.setBackgroundImage(makeImage(darkBackground))
 						.build();
 	   	
 	console.log(JSON.stringify(listTemplate));
