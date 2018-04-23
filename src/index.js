@@ -38,31 +38,39 @@ const APP_ID = 'amzn1.ask.skill.99b7b771-7458-4157-9a5b-76d5372e3cae';
                 
 const handlers = {
     'LaunchRequest': function () {
-        const quoteSelection = Math.floor(Math.random() * quotes.length);
-        // this is the mp3 that will be played
-        const quoteFile = quotes[quoteSelection];
-        console.log("quote selection played: " + quoteFile);
+	var message = "Here is today's moment of mindfullness exercise.";
 
-        // make valid SSML syntax for playing MP3
-        var message = "<audio src=\"" + mediaLocation + "quotes/" + quoteFile + "\"/>";
-        // add a one second break
-            message = message + "<break time=\"1s\"/>";
-            message = message + "You can also ask Speak Up for a minute of mindfulness, " +
-                "play Camerons song, or learn about the foundation by saying 'learn more'.";
-        var repeat = "If you would like to hear another quote, say read me a quote. ";
+        // generate a random number to select the mindful moments clip
+        const msgSelection = Math.floor(Math.random() * mindfulMoments.length);
 
-        // check if the device has a video screen - if so - build the background template
-        if (this.event.context.System.device.supportedInterfaces.Display){
-            const builder = new Alexa.templateBuilders.BodyTemplate1Builder();
-            const template = builder.setTitle('Your Personal Coach')
-                .setBackgroundImage(makeImage(backgroundImage))
-                .setTextContent(makePlainText('Speak Up'))
-                .build();
-            this.response.speak(message).listen(repeat).renderTemplate(template);
+        // check if the device is an echo show or something with a screen
+        if (this.event.context.System.device.supportedInterfaces.VideoApp) {
+            console.log("Playing Mindful Video " + msgSelection);
+
+            const videoObject = mindfulMoments[msgSelection].video;
+            const videoTitle  = 'Mindful Moments';
+            const videoClip   = mediaLocation + "videos/" + videoObject;
+
+            // this will be rendered when the user selects video controls
+            const metadata = {
+                'title': videoTitle
+            };
+
+            this.response.playVideo(videoClip, metadata);
             this.emit(':responseReady');
         } else {
+	    console.log("Playing Mindful Audio " + msgSelection);
+            // make valid SSML syntax for playing MP3
+            var message = "Here is today's moment of mindfullness exercise.";
+                message = message + "<audio src=\"" + mediaLocation + "mindfulMoments/" +
+                mindfulMoments[msgSelection].audio + "\"/>";
+            // add some closing language to be played after the music.
+                message = message + "<break time=\"1s\"/>";
+                message = message + "You can also ask Speak Up for a quote or play Camerons song.";
+            var repeat = "Please say something like, read me a quote to get started. ";
+
             this.emit(':askWithCard', message, repeat, imageObj);
-	}
+        }
     },
     'PlayCameronSong': function() {
 	// if the device is an Echo Show, play the video - else play the song
@@ -114,8 +122,7 @@ const handlers = {
                 mindfulMoments[msgSelection].audio + "\"/>";
             // add some closing language to be played after the music.
                 message = message + "<break time=\"1s\"/>";
-                message = message + "You can also ask Speak Up for a quote, upcoming " +
-                	"events, or play Camerons song.";            
+                message = message + "You can also ask Speak Up for a quote or play Camerons song.";            
             var repeat = "Please say something like, read me a quote to get started. ";
 
             this.emit(':askWithCard', message, repeat, imageObj);
@@ -205,7 +212,7 @@ const handlers = {
         var message = "This skill is called Speak Up, and can do a variety of things. " +
             "You can say, give me a quote and I will read an inspirational quote. " +
             "You can say, play cameron song and I will play a song that is a tribute to Cameron Gallagher. " +
-            "You can say, give me a minute of mindfulness and I will help you relax. " +
+            "You can say, give me a moment of mindfulness and I will help you relax. " +
             "or you can say 'learn more', and I will share more details about the foundations background. ";
         var repeat = "Please say something like, read me a quote to get started. ";
         this.emit(':ask', message, repeat);
