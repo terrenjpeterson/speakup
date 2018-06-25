@@ -35,43 +35,14 @@ const mindfulMoments = require("data/mindful.json");
 
 // this is the app id from Alexa
 const APP_ID = 'amzn1.ask.skill.99b7b771-7458-4157-9a5b-76d5372e3cae';
+
+// this is the identifier for the full length version of the song
+const full_length_prod = 'amzn1.adg.product.f88555b5-10ae-419a-8923-b5061cb380d8';
+
+// this is needed for invoking the in-skill purchase API
+const https = require('https');
                 
 const handlers = {
-    'LaunchRequest': function () {
-	var message = "Here is today's moment of mindfullness exercise.";
-
-        // generate a random number to select the mindful moments clip
-        const msgSelection = Math.floor(Math.random() * mindfulMoments.length);
-
-        // check if the device is an echo show or something with a screen
-        if (this.event.context.System.device.supportedInterfaces.VideoApp) {
-            console.log("Playing Mindful Video " + msgSelection);
-
-            const videoObject = mindfulMoments[msgSelection].video;
-            const videoTitle  = 'Mindful Moments';
-            const videoClip   = mediaLocation + "videos/" + videoObject;
-
-            // this will be rendered when the user selects video controls
-            const metadata = {
-                'title': videoTitle
-            };
-
-            this.response.playVideo(videoClip, metadata);
-            this.emit(':responseReady');
-        } else {
-	    console.log("Playing Mindful Audio " + msgSelection);
-            // make valid SSML syntax for playing MP3
-            var message = "Here is today's moment of mindfullness exercise.";
-                message = message + "<audio src=\"" + mediaLocation + "mindfulMoments/" +
-                mindfulMoments[msgSelection].audio + "\"/>";
-            // add some closing language to be played after the music.
-                message = message + "<break time=\"1s\"/>";
-                message = message + "You can also ask Speak Up for a quote or play Camerons song.";
-            var repeat = "Please say something like, read me a quote to get started. ";
-
-            this.emit(':askWithCard', message, repeat, imageObj);
-        }
-    },
     'PlayCameronSong': function() {
 	// if the device is an Echo Show, play the video - else play the song
         if (this.event.context.System.device.supportedInterfaces.VideoApp) {
@@ -94,8 +65,8 @@ const handlers = {
             // add a one second break
                 message = message + "<break time=\"1s\"/>";
                 message = message + "The full version of Cameron's song by Christopher Minton " +
-                    "is available on iTunes with proceeds going to the Cameron K Gallagher " +
-		    "foundation.";
+                    "is available on this skill, and can be purchased by saying " +
+		    "Purchase full song.";
 
             this.emit(':tellWithCard', message, imageObj);
 	}
@@ -253,6 +224,147 @@ const handlers = {
             this.emit(':tellWithCard', message, imageObj);
         }
     },
+    'ProductInfo': function() {
+	console.log('request made to provide information about premium version of skill');
+
+	var returnData = [];
+
+	// Information required to invoke the API is available in the session
+	const apiEndpoint = "api.amazonalexa.com";
+        const token  = "bearer " + this.event.context.System.apiAccessToken;
+        const language    = this.event.request.locale;
+
+        // The path for the in skill products API
+        const apiPath     = "/v1/users/~current/skills/~current/inSkillProducts";
+
+        const options = {
+            host: apiEndpoint,
+            path: apiPath,
+            method: 'GET',
+            headers: {
+                "Content-Type"      : 'application/json',
+                "Accept-Language"   : language,
+                "Authorization"     : token
+            }
+        };
+
+	console.log('ISP API:' + JSON.stringify(options));
+
+	// Call the API to see if the extended version has already been purchased for this user
+	const req = https.get(options, (res) => {
+	    res.setEncoding("utf8");
+
+	    res.on('data', (chunk) => {
+		console.log("Chunk:" + chunk);
+		returnData += chunk;
+	    });
+
+            req.on('error', (e) => {
+            	console.log('Error calling InSkillProducts API: ' + e.message);
+            	const message = 'Hmmm - something went wrong.  Please try again later.';
+            	this.emit(':ask', message, message);
+            });
+
+	    res.on('end', () => {
+		var userEntitlement = eval('(' + returnData + ')');
+		console.log("Finished. " + JSON.stringify(returnData));
+		console.log("API Code:" + res.statusCode);
+
+		// vary response based on if the user has already purchased the game
+		if (userEntitlement.inSkillProducts[0].entitled === 'ENTITLED') {
+		    const thanksMessage = "Thank you for purchasing the full version of this skill. " +
+			"You may play the entire song as you choose.";
+			"Please say, Play Cameron Song to begin.";
+		    const thanksReprompt = "If you would like to begin, please say Play Cameron Song.";
+
+		    this.emit(':ask', thanksMessage, thanksReprompt);
+		} else {
+        	    const message = userEntitlement.inSkillProducts[0].summary + " If you would like to purchase this, please say " +
+		        "Purchase full song. ";
+		    const reprompt = "If you would like to purchase the extended version of this skill, please say, Purchase full song.";
+		
+        	    this.emit(':ask', message, reprompt);
+		}
+	    });
+	});
+
+	req.end();
+    },
+    // this gets invoked if the user requests to purchase the full version of the song
+    'BuyFullVersion': function() {
+	console.log('Request made to purchase full version of the song.');
+	// this is the product id for the full version of the game
+	const productId = full_length_prod;
+	const correlationToken = this.event.context.System.apiAccessToken;
+
+	// add directive to purchase the product
+	this.response._addDirective(buildPurchaseDirective(correlationToken, productId));
+	this.emit(':responseReady');
+	console.log(JSON.stringify(this.response));
+    },
+    // this gets invoked if the user decides they don't want the full version of the song
+    'RefundFullVersion': function() {
+	console.log('Request made to refund the full version of the song.');
+
+        // this is the product id for the full version of the game
+        const productId = full_length_prod;
+        const correlationToken = this.event.context.System.apiAccessToken;
+
+        // add directive to purchase the product
+        this.response._addDirective(buildRefundDirective(correlationToken, productId));
+        this.emit(':responseReady');
+        console.log(JSON.stringify(this.response));
+    },
+    // this gets invoked after a purchase request
+    'NewSession': function() {
+	console.log("New Session.");
+	
+	if (this.event.request.type === 'LaunchRequest') {
+
+            var message = "Here is today's moment of mindfullness exercise.";
+            console.log("Launch Request Enabled");
+
+            // generate a random number to select the mindful moments clip
+            const msgSelection = Math.floor(Math.random() * mindfulMoments.length);
+
+            // check if the device is an echo show or something with a screen
+            if (this.event.context.System.device.supportedInterfaces.VideoApp) {
+            	console.log("Playing Mindful Video " + msgSelection);
+
+            	const videoObject = mindfulMoments[msgSelection].video;
+            	const videoTitle  = 'Mindful Moments';
+            	const videoClip   = mediaLocation + "videos/" + videoObject;
+
+            	// this will be rendered when the user selects video controls
+            	const metadata = {
+                    'title': videoTitle
+            	};
+
+            	this.response.playVideo(videoClip, metadata);
+            	this.emit(':responseReady');
+            } else {
+            	console.log("Playing Mindful Audio " + msgSelection);
+            	// make valid SSML syntax for playing MP3
+            	var message = "Here is today's moment of mindfullness exercise.";
+                    message = message + "<audio src=\"" + mediaLocation + "mindfulMoments/" +
+                    mindfulMoments[msgSelection].audio + "\"/>";
+            	// add some closing language to be played after the music.
+                    message = message + "<break time=\"1s\"/>";
+                    message = message + "You can also ask Speak Up for a quote or play Camerons song.";
+                var repeat = "Please say something like, read me a quote to get started. ";
+
+            	this.emit(':askWithCard', message, repeat, imageObj);
+            }
+        } else {
+	    console.log('Request received from purchase engine.');
+
+	    const message = "Thanks for purchasing the skill. If you would like to play the full length version " +
+	        "now, please say Play Cameron Song.";
+	    const reprompt = "If you would like to play the song, please say Play Cameron Song.";
+
+	    this.emit(':ask', message, reprompt);
+	}
+    },
     'Unhandled': function() {
         console.log("UNHANDLED");
         var message = "I'm sorry, I didn't understand your request. Please try again.";
@@ -260,9 +372,41 @@ const handlers = {
     }    
 };
 
+// this is the directive that builds the response needed to purchase a product
+const buildPurchaseDirective = function(correlationToken, productId) {
+    return {
+	"type": "Connections.SendRequest",
+	"name": "Buy",
+	"payload": {
+	    "InSkillProduct": {
+		"productId": productId
+	    }
+	},
+	"token": correlationToken
+    }
+};
+
+// this is the directive that builds the response needed to purchase a product
+const buildRefundDirective = function(correlationToken, productId) {
+    return {
+        "type": "Connections.SendRequest",
+        "name": "Cancel",
+        "payload": {
+            "InSkillProduct": {
+                "productId": productId
+            }
+        },
+        "token": correlationToken
+    }
+};
+
 exports.handler = (event, context) => {
     const alexa = Alexa.handler(event, context);
     alexa.appId = APP_ID;
+
+    // log event data for every request
+    console.log(JSON.stringify(event));
+
     // To enable string internationalization (i18n) features, set a resources object.
     //alexa.resources = languageStrings;
     alexa.registerHandlers(handlers);

@@ -13,3 +13,9 @@ https://s3.amazonaws.com/camerongallagherfoundation/
 * /quotes - mp3 files for quotes that are read in the skill.
 
 V2 - Echo Show
+
+V3 - In Skill Purchasing
+
+* /isp - product files used to generate in-skill purchases
+* /html - web files used to integrate into Alexa skill store
+

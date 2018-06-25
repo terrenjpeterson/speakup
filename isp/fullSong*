@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "type": "ENTITLEMENT",
+  "referenceName": "fullSong",
+  "publishingInformation": {
+    "locales": {
+      "en-US": {
+        "name": "Full version of Cameron's Song",
+        "smallIconUri": "https://s3.amazonaws.com/camerongallagherfoundation/logo/speakUpLogo-108x108.png",
+        "largeIconUri": "https://s3.amazonaws.com/camerongallagherfoundation/logo/speakUpLogo-512x512.png",
+        "summary": "Full version of Cameron's Song",
+        "description": "This is the full version of Cameron's Song",
+        "examplePhrases": [
+          "Alexa, Purchase full song",
+        ],
+        "keywords": [
+          "song"
+        ],
+        "customProductPrompts": {
+          "purchasePromptDescription": "Purchase full song",
+          "boughtCardDescription": "Thank you for purchasing the full song"
+        }
+      }
+    },
+    "distributionCountries": [
+      "US"
+    ],
+    "pricing": {
+      "amazon.com": {
+        "releaseDate": "2018-06-01",
+        "defaultPriceListing": {
+          "price": 0.99,
+          "currency": "USD"
+        }
+      }
+    },
+    "taxInformation": {
+      "category": "SOFTWARE"
+    }
+  },
+  "privacyAndCompliance": {
+    "locales": {
+      "en-US": {
+        "privacyPolicyUrl": "https://s3.amazonaws.com/camerongallagherfoundation/privacy.html"
+      }
+    }
+  },
+  "testingInstructions": "To purchase, just say Purchase full song",
+  "purchasableState": "PURCHASABLE"
+}
