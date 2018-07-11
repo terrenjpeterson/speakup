@@ -54,7 +54,55 @@ const handlers = {
 
 	    // note that in-skill purcchase only works in the US
 	    if (this.event.request.locale === 'en-US') {
-		message = message + "Just say, Purchase the Full Song, to contribute to CKG's mission.";
+
+	        var returnData = [];
+
+	        // Information required to invoke the API is available in the session
+	        const apiEndpoint = "api.amazonalexa.com";
+	        const token  = "bearer " + this.event.context.System.apiAccessToken;
+	        const language    = this.event.request.locale;
+
+	        // The path for the in skill products API
+	        const apiPath     = "/v1/users/~current/skills/~current/inSkillProducts";
+
+	        const options = {
+	            host: apiEndpoint,
+	            path: apiPath,
+	            method: 'GET',
+	            headers: {
+	                "Content-Type"      : 'application/json',
+	                "Accept-Language"   : language,
+	                "Authorization"     : token
+	            }
+	        };
+
+	        console.log('ISP API:' + JSON.stringify(options));
+
+	        // Call the API to see if the extended version has already been purchased for this user
+	        const req = https.get(options, (res) => {
+	            res.setEncoding("utf8");
+	
+	            res.on('data', (chunk) => {
+	                console.log("Chunk:" + chunk);
+	                returnData += chunk;
+	            });
+
+	            req.on('error', (e) => {
+	                console.log('Error calling InSkillProducts API: ' + e.message);
+	                const message = 'Hmmm - something went wrong.  Please try again later.';
+	                this.emit(':ask', message, message);
+	            });
+
+	            res.on('end', () => {
+	                var userEntitlement = eval('(' + returnData + ')');
+	                console.log("Finished. API Code:" + res.statusCode);
+
+	                // vary response based on if the user has already purchased the full version of the song
+	                if (userEntitlement.inSkillProducts[0].entitled === 'NOT_ENTITLED') {
+			    message = message + "Just say, Purchase the Full Song, to contribute to CKG's mission.";
+			}
+		    });
+		});
 	    }
 
             const repeat = "Please say something like, play Cameron's Song. ";
@@ -243,6 +291,25 @@ const handlers = {
             this.emit(':askWithCard', message, repeat, imageObj);
 	}
     },
+    // this plays a quote
+    'PlayQuote': function() {
+	console.log("Quote Requested");
+
+        const quoteSelection = Math.floor(Math.random() * quotes.length);
+        // this is the mp3 that will be played
+        const quoteFile = quotes[quoteSelection];
+        console.log("quote selection played: " + quoteFile);
+
+        // make valid SSML syntax for playing MP3
+        var message = "<audio src=\"" + mediaLocation + "quotes/" + quoteFile + "\"/>";
+        // add a one second break
+            message = message + "<break time=\"1s\"/>";
+            message = message + "You can also ask Speak Up for a minute of mindfulness, " +
+                "learn more about the foundation, or play Camerons song.";
+        const repeat = "If you would like to hear another quote, say read me a quote. ";
+
+        this.emit(':askWithCard', message, repeat, imageObj);
+    },
     // this is the event triggered by touching the device screen
     'ElementSelected': function() {
 	console.log("Mindful Video Selected from Device Screen " + this.event.request.token);
@@ -332,12 +399,20 @@ const handlers = {
         this.emit(':ask', message, repeat);
     },
     'AMAZON.CancelIntent': function () {
+	console.log("Cancel Requested");
         const message = "Help begins when we speak up. Start the conversation.";
         this.emit(':tell', message);
     },
     'AMAZON.StopIntent': function () {
-        const message = "Help begins when we speak up. Start the conversation.";
-        this.emit(':tell', message);
+	console.log("Stop Requested");
+
+        const message = "Okay, what would you like to do next? " +
+	    "Please say something like Play Cameron Song or Give Me a Moment of Mindfulness.";
+	const repeat = "If you would like to play a song, please say Play Cameron Song. " +
+	    "If you would rather try and relax, say Give Me a Moment of Mindfulness.";
+
+	this.response.speak(message).listen(repeat);
+        this.emit(':responseReady');
     },
     'SessionEndedRequest': function () {
         const message = "Help begins when we speak up. Start the conversation.";
@@ -503,12 +578,18 @@ const handlers = {
         if (this.event.request.payload.purchaseResult === 'ACCEPTED') {
             if (this.event.request.name === 'Cancel') {
                 console.log("Successfully requested a refund.");
-                var refundMessage = "Your request for a refund has been successfully processed. " +
-                    "Please follow the instructions on the Alexa Companion App for more details.";
-                this.response.speak(refundMessage);
+
+                const refundMessage = "You can still use the other features of the skill. " +
+		    "Please say something like Teach Me a Moment of Mindfulness. ";
+		const refundRepeat = "If you would like to do a relaxation drill, please " +
+		    "say something like Teach me a moment of mindfulness.";
+
+                this.response.speak(refundMessage).listen(refundRepeat);;
                 this.emit(':responseReady');
+
             } else {
                 console.log("Received acceptance message from purchase.");
+
                 const message = "Thanks for purchasing. If you would like to play the full length version " +
                     "now, please say Play Cameron Song.";
                 const reprompt = "If you would like to play the song, please say Play Cameron Song.";
@@ -517,12 +598,26 @@ const handlers = {
             }
         } else if (this.event.request.payload.purchaseResult === 'ALREADY_PURCHASED') {
             console.log("Attempt to purchase song that already has been made.");
-            this.response.speak("You have already purchased the extended version of the song.");
+
+	    const message = "Would you like to play it now? Just say, Play Cameron Song.";
+	    const repeat  = "You have already made a donation to the CKG Foundation. " +
+		"If you would like to play the full version of Cameron Song by Christopher Minton, " +
+		"Please say, Play Cameron Song.";
+
+            this.response.speak(message).listen(repeat);
             this.emit(':responseReady');
+
         } else if (this.event.request.payload.purchaseResult === 'DECLINED') {
             console.log("Customer began purhase transaction, then declined.");
-            this.response.speak("Let's go ahead and try something else.");
+
+	    const message = "Let's go ahead and try somethign else. " +
+		"If you would like a relaxation activity, please say Give me a Moment of Mindfulness.";
+	    const repeat = "To begin a relaxation activity, please say something like " +
+		"Give me a Moment of Mindfulness.";
+
+	    this.response.speak(message).listen(repeat);
             this.emit(':responseReady');
+
         } else if (this.event.request.payload.purchaseResult === 'ERROR') {
             console.log("Error received during purchase transaction.");
             this.response.speak("Hmmm. Something didn't work. Please try again later.");
